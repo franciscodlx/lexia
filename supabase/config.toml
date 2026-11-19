@@ -5,7 +5,7 @@ site_url = "lexia://auth/callback"
 additional_redirect_urls = ["lexia://auth/callback"]
 
 [auth.email]
-enable_signup = true
+enabled = true
 # Sin confirmación por email durante desarrollo (el SMTP integrado del free
 # tier limita a ~2 correos/hora). Activar + SMTP propio antes de producción.
 enable_confirmations = false

@@ -2,8 +2,7 @@
 -- Lexia — Initial Schema
 -- ============================================================
 
--- Enable UUID extension
-create extension if not exists "uuid-ossp";
+-- UUIDs: gen_random_uuid() is built into Postgres 13+ (no extension needed)
 
 -- ============================================================
 -- TABLES
@@ -34,7 +33,7 @@ create table if not exists public.player_stats (
 
 -- game_history: individual game records
 create table if not exists public.game_history (
-  id            uuid primary key default uuid_generate_v4(),
+  id            uuid primary key default gen_random_uuid(),
   user_id       uuid not null references public.profiles(id) on delete cascade,
   word          text not null,
   guesses       integer,           -- null if lost
@@ -47,7 +46,7 @@ create table if not exists public.game_history (
 
 -- daily_words: pre-seeded or admin-set daily words
 create table if not exists public.daily_words (
-  id            uuid primary key default uuid_generate_v4(),
+  id            uuid primary key default gen_random_uuid(),
   word          text not null,
   language      text not null check (language in ('es', 'en')),
   date          date not null,
@@ -56,7 +55,7 @@ create table if not exists public.daily_words (
 
 -- ai_words_cache: cached AI-generated words to reduce API calls
 create table if not exists public.ai_words_cache (
-  id            uuid primary key default uuid_generate_v4(),
+  id            uuid primary key default gen_random_uuid(),
   word          text not null,
   definition    text not null,
   hint          text not null,
