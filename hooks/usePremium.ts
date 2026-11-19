@@ -1,104 +1,89 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import Purchases, {
+  type CustomerInfo,
   type PurchasesOffering,
   type PurchasesPackage,
 } from 'react-native-purchases'
-import { Platform } from 'react-native'
 import { useUserStore } from '@/store/userStore'
+import { initRevenueCat, PREMIUM_ENTITLEMENT } from '@/lib/revenuecat'
 
-const RC_IOS_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY ?? ''
-const RC_ANDROID_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY ?? ''
-
-let rcInitialized = false
-
-function initRevenueCat() {
-  if (rcInitialized) return
-  const key = Platform.OS === 'ios' ? RC_IOS_KEY : RC_ANDROID_KEY
-  if (!key) return
-  Purchases.configure({ apiKey: key })
-  rcInitialized = true
+export function hasPremium(info: CustomerInfo): boolean {
+  return info.entitlements.active[PREMIUM_ENTITLEMENT] !== undefined
 }
 
+/**
+ * Premium state + purchase actions. The status itself is kept in sync by the
+ * root layout (customer-info listener + logIn/logOut), so this hook never
+ * re-identifies the user on mount.
+ */
 export function usePremium() {
-  const { isPremium, setIsPremium, profile } = useUserStore()
+  const isPremium = useUserStore((s) => s.isPremium)
+  const setIsPremium = useUserStore((s) => s.setIsPremium)
   const [offerings, setOfferings] = useState<PurchasesOffering | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const profileId = profile?.id ?? null
-
   const checkStatus = useCallback(async () => {
+    if (!initRevenueCat()) return
     try {
-      initRevenueCat()
-      if (profileId) {
-        await Purchases.logIn(profileId)
-      }
-      const info = await Purchases.getCustomerInfo()
-      const active = info.entitlements.active['premium'] !== undefined
-      setIsPremium(active)
-    } catch {
-      // Fail silently — user stays non-premium
+      setIsPremium(hasPremium(await Purchases.getCustomerInfo()))
+    } catch (e) {
+      console.warn('[Lexia] RevenueCat status failed', e)
     }
-  }, [profileId, setIsPremium])
-
-  useEffect(() => {
-    checkStatus()
-  }, [checkStatus])
+  }, [setIsPremium])
 
   const loadOfferings = useCallback(async () => {
+    if (!initRevenueCat()) {
+      setError('not_configured')
+      return
+    }
     try {
       setIsLoading(true)
-      initRevenueCat()
+      setError(null)
       const res = await Purchases.getOfferings()
       setOfferings(res.current)
     } catch {
-      setError('Could not load offerings')
+      setError('offerings_failed')
     } finally {
       setIsLoading(false)
     }
   }, [])
 
-  const purchase = useCallback(async (pkg: PurchasesPackage) => {
-    try {
-      setIsLoading(true)
-      setError(null)
-      const { customerInfo } = await Purchases.purchasePackage(pkg)
-      const active = customerInfo.entitlements.active['premium'] !== undefined
-      setIsPremium(active)
-      return active
-    } catch (e: unknown) {
-      if ((e as { userCancelled?: boolean }).userCancelled) return false
-      setError('Purchase failed')
-      return false
-    } finally {
-      setIsLoading(false)
-    }
-  }, [setIsPremium])
+  const purchase = useCallback(
+    async (pkg: PurchasesPackage) => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        const { customerInfo } = await Purchases.purchasePackage(pkg)
+        const active = hasPremium(customerInfo)
+        setIsPremium(active)
+        return active
+      } catch (e: unknown) {
+        if ((e as { userCancelled?: boolean }).userCancelled) return false
+        setError('purchase_failed')
+        return false
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    [setIsPremium]
+  )
 
   const restore = useCallback(async () => {
+    if (!initRevenueCat()) return false
     try {
       setIsLoading(true)
       setError(null)
-      const info = await Purchases.restorePurchases()
-      const active = info.entitlements.active['premium'] !== undefined
+      const active = hasPremium(await Purchases.restorePurchases())
       setIsPremium(active)
       return active
     } catch {
-      setError('Restore failed')
+      setError('restore_failed')
       return false
     } finally {
       setIsLoading(false)
     }
   }, [setIsPremium])
 
-  return {
-    isPremium,
-    offerings,
-    isLoading,
-    error,
-    checkStatus,
-    loadOfferings,
-    purchase,
-    restore,
-  }
+  return { isPremium, offerings, isLoading, error, checkStatus, loadOfferings, purchase, restore }
 }

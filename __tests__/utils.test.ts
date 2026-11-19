@@ -125,9 +125,49 @@ describe('isValidWord', () => {
     expect(isValidWord('CRANE', 'en')).toBe(true)
   })
 
-  it('rejects words not in the list', () => {
+  it('rejects words not in the dictionary', () => {
     expect(isValidWord('ZZZZZ', 'es')).toBe(false)
     expect(isValidWord('ZZZZZ', 'en')).toBe(false)
+  })
+
+  it('accepts real words that are not daily answers (full dictionary)', () => {
+    expect(WORDS_ES).not.toContain('COMEN')
+    expect(isValidWord('COMEN', 'es')).toBe(true)
+    expect(isValidWord('canción'.slice(0, 5), 'es')).toBe(false)
+    expect(isValidWord('niños', 'es')).toBe(true)
+    expect(isValidWord('QUIRK', 'en')).toBe(true)
+  })
+
+  it('keeps languages separate', () => {
+    expect(isValidWord('PERRO', 'en')).toBe(false)
+    expect(isValidWord('HOUSE', 'es')).toBe(false)
+  })
+
+  it('every answer is itself a valid guess', () => {
+    expect(WORDS_ES.every((w) => isValidWord(w, 'es'))).toBe(true)
+    expect(WORDS_EN.every((w) => isValidWord(w, 'en'))).toBe(true)
+  })
+})
+
+describe('daily word rotation', () => {
+  it('does not repeat a word until the whole list has been used', () => {
+    for (const [lang, list] of [['es', WORDS_ES], ['en', WORDS_EN]] as const) {
+      const seen = new Set<string>()
+      const start = new Date(2026, 0, 1)
+      for (let i = 0; i < list.length; i++) {
+        const d = new Date(start)
+        d.setDate(start.getDate() + i)
+        seen.add(getDailyWord(lang, d))
+      }
+      expect(seen.size).toBe(list.length)
+    }
+  })
+
+  it('answer lists have no duplicates and only valid letters', () => {
+    expect(new Set(WORDS_ES).size).toBe(WORDS_ES.length)
+    expect(new Set(WORDS_EN).size).toBe(WORDS_EN.length)
+    expect(WORDS_ES.every((w) => /^[A-ZÑ]{5}$/.test(w))).toBe(true)
+    expect(WORDS_EN.every((w) => /^[A-Z]{5}$/.test(w))).toBe(true)
   })
 })
 
@@ -137,8 +177,9 @@ describe('sanitizeWord', () => {
     expect(sanitizeWord('árbol')).toBe('ARBOL')
   })
 
-  it('normalizes Ñ to N along with other diacritics', () => {
-    expect(sanitizeWord('ñoño')).toBe('NONO')
+  it('keeps Ñ (it has its own key) while stripping other diacritics', () => {
+    expect(sanitizeWord('ñoño')).toBe('ÑOÑO')
+    expect(sanitizeWord('pingüino')).toBe('PINGUINO')
   })
 })
 

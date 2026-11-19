@@ -18,6 +18,10 @@ interface Copy {
     nextWordIn: string
     playAgain: string
     close: string
+    alreadyPlayed: string
+    viewResult: string
+    timeUp: string
+    premiumLanguage: string
   }
   auth: {
     signIn: string
@@ -47,6 +51,8 @@ interface Copy {
     guessDistribution: string
     noStats: string
     signInForCloud: string
+    recentGames: string
+    deviceStats: string
   }
   profile: {
     title: string
@@ -59,6 +65,13 @@ interface Copy {
     deleteConfirm: string
     cancel: string
     save: string
+    premiumActive: string
+    purchasesRestored: string
+    noPurchases: string
+    deleteFailed: string
+    changeAvatar: string
+    avatarFailed: string
+    usernameTaken: string
   }
   ai: {
     title: string
@@ -67,6 +80,9 @@ interface Copy {
     generating: string
     play: string
     definition: string
+    language: string
+    errorGenerating: string
+    rateLimited: string
   }
   paywall: {
     title: string
@@ -79,6 +95,9 @@ interface Copy {
     lifetime: string
     restore: string
     terms: string
+    noAutoRenew: string
+    notAvailable: string
+    purchaseFailed: string
   }
   common: {
     loading: string
@@ -89,6 +108,10 @@ interface Copy {
     no: string
     premium: string
     free: string
+  }
+  notifications: {
+    title: string
+    body: string
   }
 }
 
@@ -111,6 +134,10 @@ export const COPY: Record<Language, Copy> = {
       nextWordIn: 'Siguiente palabra en',
       playAgain: 'Jugar de nuevo',
       close: 'Cerrar',
+      alreadyPlayed: '¡Ya jugaste hoy!',
+      viewResult: 'Ver resultado',
+      timeUp: '¡Se acabó el tiempo!',
+      premiumLanguage: 'El segundo idioma es Premium',
     },
     auth: {
       signIn: 'Iniciar sesión',
@@ -140,6 +167,8 @@ export const COPY: Record<Language, Copy> = {
       guessDistribution: 'Distribución de intentos',
       noStats: 'Aún no hay estadísticas. ¡Juega tu primera partida!',
       signInForCloud: 'Inicia sesión para sincronizar tus estadísticas',
+      recentGames: 'Últimas partidas',
+      deviceStats: 'Estadísticas de este dispositivo',
     },
     profile: {
       title: 'Perfil',
@@ -152,6 +181,13 @@ export const COPY: Record<Language, Copy> = {
       deleteConfirm: '¿Estás seguro? Esta acción no se puede deshacer.',
       cancel: 'Cancelar',
       save: 'Guardar',
+      premiumActive: '✓ Premium activo',
+      purchasesRestored: '¡Compras restauradas!',
+      noPurchases: 'No se encontraron compras.',
+      deleteFailed: 'No se pudo eliminar la cuenta. Inténtalo más tarde.',
+      changeAvatar: 'Cambiar foto',
+      avatarFailed: 'No se pudo subir la foto.',
+      usernameTaken: 'Ese nombre ya está en uso.',
     },
     ai: {
       title: 'Modo IA',
@@ -160,6 +196,9 @@ export const COPY: Record<Language, Copy> = {
       generating: 'Generando palabra...',
       play: 'Jugar',
       definition: 'Definición',
+      language: 'Idioma',
+      errorGenerating: 'No se pudo generar la palabra. Inténtalo de nuevo.',
+      rateLimited: 'Llegaste al límite diario del Modo IA. Vuelve mañana.',
     },
     paywall: {
       title: 'Lexia Premium',
@@ -172,6 +211,9 @@ export const COPY: Record<Language, Copy> = {
       lifetime: '$2.99 pago único',
       restore: 'Restaurar compras',
       terms: 'Términos y condiciones',
+      noAutoRenew: 'Sin renovación automática',
+      notAvailable: 'Las compras no están disponibles todavía.',
+      purchaseFailed: 'La compra no se completó.',
     },
     common: {
       loading: 'Cargando...',
@@ -182,6 +224,10 @@ export const COPY: Record<Language, Copy> = {
       no: 'No',
       premium: 'PRO',
       free: 'Gratis',
+    },
+    notifications: {
+      title: '¡Tu palabra del día te espera! 📝',
+      body: 'Abre Lexia y demuestra que eres el mejor en palabras.',
     },
   },
   en: {
@@ -202,6 +248,10 @@ export const COPY: Record<Language, Copy> = {
       nextWordIn: 'Next word in',
       playAgain: 'Play again',
       close: 'Close',
+      alreadyPlayed: "You've already played today!",
+      viewResult: 'View result',
+      timeUp: "Time's up!",
+      premiumLanguage: 'The second language is Premium',
     },
     auth: {
       signIn: 'Sign in',
@@ -231,6 +281,8 @@ export const COPY: Record<Language, Copy> = {
       guessDistribution: 'Guess distribution',
       noStats: 'No stats yet. Play your first game!',
       signInForCloud: 'Sign in to sync your statistics',
+      recentGames: 'Recent games',
+      deviceStats: 'Stats on this device',
     },
     profile: {
       title: 'Profile',
@@ -243,6 +295,13 @@ export const COPY: Record<Language, Copy> = {
       deleteConfirm: 'Are you sure? This action cannot be undone.',
       cancel: 'Cancel',
       save: 'Save',
+      premiumActive: '✓ Premium active',
+      purchasesRestored: 'Purchases restored!',
+      noPurchases: 'No purchases found.',
+      deleteFailed: 'Could not delete the account. Try again later.',
+      changeAvatar: 'Change photo',
+      avatarFailed: 'Could not upload the photo.',
+      usernameTaken: 'That username is already taken.',
     },
     ai: {
       title: 'AI Mode',
@@ -251,6 +310,9 @@ export const COPY: Record<Language, Copy> = {
       generating: 'Generating word...',
       play: 'Play',
       definition: 'Definition',
+      language: 'Language',
+      errorGenerating: 'Could not generate a word. Please try again.',
+      rateLimited: "You've reached today's AI Mode limit. Come back tomorrow.",
     },
     paywall: {
       title: 'Lexia Premium',
@@ -263,6 +325,9 @@ export const COPY: Record<Language, Copy> = {
       lifetime: '$2.99 one-time',
       restore: 'Restore purchases',
       terms: 'Terms and conditions',
+      noAutoRenew: 'No auto-renewal',
+      notAvailable: 'Purchases are not available yet.',
+      purchaseFailed: 'The purchase did not complete.',
     },
     common: {
       loading: 'Loading...',
@@ -273,6 +338,10 @@ export const COPY: Record<Language, Copy> = {
       no: 'No',
       premium: 'PRO',
       free: 'Free',
+    },
+    notifications: {
+      title: 'Your daily word is waiting! 📝',
+      body: 'Open Lexia and show off your vocabulary skills.',
     },
   },
 }

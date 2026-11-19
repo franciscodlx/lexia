@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Modal,
   View,
@@ -10,7 +10,7 @@ import {
 } from 'react-native'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth, isGoogleSignInAvailable } from '@/hooks/useAuth'
 import type { Language, RegistrationPromptReason } from '@/types'
 import { COPY } from '@/constants/copy'
 import { Colors } from '@/constants/colors'
@@ -34,6 +34,21 @@ export function AuthModal({ visible, reason, language, onDismiss }: Props) {
   const [username, setUsername] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Hidden until confirmed: needs OAuth IDs, and Play Services on Android (not on Huawei)
+  const [googleAvailable, setGoogleAvailable] = useState(false)
+
+  useEffect(() => {
+    if (!visible) return
+    let active = true
+    isGoogleSignInAvailable()
+      .then((ok) => {
+        if (active) setGoogleAvailable(ok)
+      })
+      .catch(() => {})
+    return () => {
+      active = false
+    }
+  }, [visible])
 
   const isDismissable = reason === 'suggestion'
 
@@ -46,7 +61,7 @@ export function AuthModal({ visible, reason, language, onDismiss }: Props) {
     setLoading(true)
     try {
       if (mode === 'signup') {
-        await signUpWithEmail(email.trim(), password, username.trim())
+        await signUpWithEmail(email.trim(), password, username.trim(), language)
       } else {
         await signInWithEmail(email.trim(), password)
       }
@@ -153,6 +168,7 @@ export function AuthModal({ visible, reason, language, onDismiss }: Props) {
                     </Pressable>
                   )}
 
+                  {googleAvailable && (
                   <Pressable
                     onPress={handleGoogle}
                     disabled={loading}
@@ -168,6 +184,7 @@ export function AuthModal({ visible, reason, language, onDismiss }: Props) {
                       {copy.auth.continueWithGoogle}
                     </Text>
                   </Pressable>
+                  )}
 
                   {/* Divider */}
                   <View className="flex-row items-center gap-3">
@@ -193,6 +210,8 @@ export function AuthModal({ visible, reason, language, onDismiss }: Props) {
                     value={email}
                     onChangeText={setEmail}
                     keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
                   />
                   <Input
                     label={copy.auth.password}

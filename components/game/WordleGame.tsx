@@ -31,6 +31,10 @@ interface Props {
   onTimeExpire?: () => void
   onLanguageChange?: (lang: Language) => void
   showLanguageToggle?: boolean
+  /** Languages shown with a lock (premium-only); tapping still calls onLanguageChange */
+  lockedLanguages?: Language[]
+  /** When set (finished game), the bottom bar shows a "view result" button */
+  onShowResult?: () => void
 }
 
 export function WordleGame({
@@ -53,6 +57,8 @@ export function WordleGame({
   onTimeExpire,
   onLanguageChange,
   showLanguageToggle = false,
+  lockedLanguages = [],
+  onShowResult,
 }: Props) {
   const copy = COPY[language]
   const isPlaying = gameStatus === 'playing'
@@ -78,7 +84,7 @@ export function WordleGame({
                   className="text-xs font-bold uppercase"
                   style={{ color: language === lang ? Colors.text : Colors.textMuted }}
                 >
-                  {lang}
+                  {lockedLanguages.includes(lang) ? `🔒${lang}` : lang}
                 </Text>
               </Pressable>
             ))}
@@ -143,8 +149,16 @@ export function WordleGame({
           <Text className="text-white text-sm font-bold">{streak}</Text>
         </View>
 
-        {/* Timer (AI mode only) */}
-        {timeLimit !== null && isPlaying ? (
+        {/* Timer (AI mode only) / result button (finished game) */}
+        {onShowResult && !isPlaying ? (
+          <Pressable
+            onPress={onShowResult}
+            className="px-3 py-1.5 rounded-lg active:opacity-70"
+            style={{ backgroundColor: Colors.correct }}
+          >
+            <Text className="text-white text-sm font-bold">{copy.game.viewResult}</Text>
+          </Pressable>
+        ) : timeLimit !== null && isPlaying ? (
           <CountdownTimer
             totalSeconds={timeLimit}
             onExpire={onTimeExpire}

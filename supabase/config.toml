@@ -1,4 +1,4 @@
-project_id = "rxfdmdsqtlsvkakvctjv"
+project_id = "lexia"
 
 [auth]
 site_url = "lexia://auth/callback"
@@ -24,3 +24,10 @@ secret = ""
 #   skip_nonce_check = true   # el SDK nativo de Google no envía nonce
 [auth.external.google]
 enabled = false
+
+# Edge Functions: el gateway valida el JWT antes de invocar
+[functions.generate-word]
+verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = true

@@ -2,16 +2,20 @@ import type { Language, LetterCell, LetterStatus } from '@/types'
 import { WORD_LENGTH, MAX_ROWS } from '@/constants/config'
 import { WORDS_ES } from './words-es'
 import { WORDS_EN } from './words-en'
+import { DICT_ES } from './dict-es'
+import { DICT_EN } from './dict-en'
 
-export function getDailyWord(lang: Language): string {
+// Large prime: (day * STEP) mod N walks the whole answer list before repeating a word.
+const DAILY_STEP = 7919
+
+/** Days since 1970-01-01 for the device's LOCAL calendar date (stable all day long). */
+export function getLocalDayNumber(date: Date = new Date()): number {
+  return Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86_400_000)
+}
+
+export function getDailyWord(lang: Language, date: Date = new Date()): string {
   const words = lang === 'es' ? WORDS_ES : WORDS_EN
-  const today = getTodayString()
-  // Deterministic seed from date string
-  let hash = 0
-  for (let i = 0; i < today.length; i++) {
-    hash = (hash * 31 + today.charCodeAt(i)) >>> 0
-  }
-  return words[hash % words.length]
+  return words[(getLocalDayNumber(date) * DAILY_STEP) % words.length]
 }
 
 export function createEmptyBoard(): LetterCell[][] {
@@ -64,28 +68,31 @@ export function formatCountdown(totalSeconds: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
+function toDateString(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 export function getTodayString(): string {
-  const now = new Date()
-  const y = now.getFullYear()
-  const m = String(now.getMonth() + 1).padStart(2, '0')
-  const d = String(now.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
+  return toDateString(new Date())
 }
 
 export function getYesterdayString(): string {
-  const now = new Date()
-  now.setDate(now.getDate() - 1)
-  const y = now.getFullYear()
-  const m = String(now.getMonth() + 1).padStart(2, '0')
-  const d = String(now.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
+  const d = new Date()
+  d.setDate(d.getDate() - 1)
+  return toDateString(d)
 }
 
 export function sanitizeWord(word: string): string {
+  // NFD would split Ñ into N + combining tilde, so protect it before stripping accents.
   return word
     .toUpperCase()
+    .replace(/Ñ/g, '\u0001')
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // strip accents
+    .replace(/[̀-ͯ]/g, '') // strip accents
+    .replace(/\u0001/g, 'Ñ')
 }
 
 export function boardToEmojis(board: LetterCell[][], completedRows: number): string {
@@ -103,9 +110,22 @@ export function boardToEmojis(board: LetterCell[][], completedRows: number): str
     .join('\n')
 }
 
+const dictionaries: Partial<Record<Language, Set<string>>> = {}
+
+function getDictionary(lang: Language): Set<string> {
+  let dict = dictionaries[lang]
+  if (!dict) {
+    // Built lazily on the first guess (~11k words per language).
+    dict = new Set((lang === 'es' ? DICT_ES : DICT_EN).split(' '))
+    for (const w of lang === 'es' ? WORDS_ES : WORDS_EN) dict.add(w)
+    dictionaries[lang] = dict
+  }
+  return dict
+}
+
+/** True when `word` is an accepted guess: in the dictionary or in the answer list. */
 export function isValidWord(word: string, lang: Language): boolean {
-  const words = lang === 'es' ? WORDS_ES : WORDS_EN
-  return words.includes(word.toUpperCase())
+  return getDictionary(lang).has(sanitizeWord(word))
 }
 
 export function secondsUntilMidnight(): number {

@@ -41,7 +41,7 @@ claude --permission-mode plan
 **Bundle ID:** `com.fcodlx.lexia`
 **Tipo:** Aplicación móvil React Native (Expo Managed Workflow)
 **Plataformas objetivo:** iOS, Android, Huawei (sin Google Mobile Services)
-**Descripción:** Juego tipo Wordle diario con soporte ES/EN, registro progresivo de usuarios, modo IA donde Claude Haiku genera palabras por dificultad y tema, y monetización mediante pago único + anuncios rewarded.
+**Descripción:** Juego tipo Wordle diario con soporte ES/EN, registro progresivo de usuarios, modo IA donde Meta Muse Spark genera palabras por dificultad y tema, y monetización mediante pago único + anuncios rewarded.
 
 ### Funcionalidades principales
 
@@ -50,7 +50,7 @@ claude --permission-mode plan
 3. Registro progresivo: sugerencia suave en partida 5, obligatorio en partida 10
 4. Auth con Supabase: Apple Sign-In, Google Sign-In, Email + contraseña
 5. Perfil completo: username, avatar, idioma preferido, racha, estadísticas en nube
-6. Modo IA: Claude Haiku genera palabras por dificultad (fácil/medio/difícil) y tema (7 temas)
+6. Modo IA: Muse Spark (Meta Model API) genera palabras por dificultad (fácil/medio/difícil) y tema (7 temas)
 7. Monetización: pago único $2.99 desbloquea segundo idioma y modo IA; anuncios rewarded dan pistas
 8. Notificaciones push diarias a las 9am con texto bilingüe
 9. Compartir resultado como emojis estilo Wordle (🟩🟨⬛)
@@ -70,7 +70,7 @@ claude --permission-mode plan
 | Haptics        | expo-haptics                                  | Feedback táctil                  |
 | Auth + DB      | Supabase JS v2                                | Auth + Postgres + Edge Functions |
 | Storage local  | @react-native-async-storage/async-storage v2  | Sesión + progreso local          |
-| IA palabras    | Claude Haiku (claude-haiku-4-5-20251001)      | Via Supabase Edge Function       |
+| IA palabras    | Meta Muse Spark (`muse-spark-1.3`)            | Via Supabase Edge Function       |
 | Monetización   | RevenueCat v8                                 | iOS + Android + restore          |
 | Anuncios       | react-native-google-mobile-ads v13            | Solo rewarded                    |
 | Notificaciones | expo-notifications                            | Push diario                      |
@@ -106,22 +106,24 @@ NativeWind compila las clases Tailwind en build time — sin overhead de runtime
 2. Settings → API → copiar `Project URL` y `anon public key`
 3. Authentication → Providers → activar Email, Apple, Google
 4. Authentication → URL Configuration → añadir `lexia://auth/callback` en Redirect URLs
-5. Edge Functions → Secrets → añadir `ANTHROPIC_API_KEY`
+5. Edge Functions → Secrets → añadir `MODEL_API_KEY` (Meta Model API)
 6. SQL Editor → ejecutar `supabase/migrations/001_initial_schema.sql`
 
 ---
 
-### 🔴 Anthropic Console — Claude API (palabras IA)
+### 🔴 Meta Model API (Muse) — palabras IA
 
-**Registro:** https://console.anthropic.com
-**Documentación API:** https://docs.anthropic.com/en/api/getting-started
-**Modelos disponibles:** https://docs.anthropic.com/en/docs/about-claude/models
-**Plan:** Pay-as-you-go. Claude Haiku (~$0.80/MTok input). Una palabra generada cuesta ~$0.0002
+> Desde nov 2026 el Modo IA usa **Muse Spark** en lugar de Claude Haiku (mismo proveedor que
+> voicify-note, imagify-studio, lensify-vision y fieldvision).
+
+**Consola:** https://dev.meta.ai
+**Endpoint:** `POST https://api.meta.ai/v1/chat/completions` (compatible con OpenAI, `response_format: json_schema` estricto)
+**Plan:** Pay-as-you-go. `muse-spark-1.3`: 1.25 USD/1M tokens entrada · 4.25 USD/1M salida (≈ 0.002–0.007 USD por llamada de 5 palabras, incluye tokens de razonamiento). `muse-ember-1.0` ≈ 12× más barato.
 **Pasos:**
 
-1. Crear cuenta → Settings → API Keys → Create Key → copiar inmediatamente (no se vuelve a mostrar)
-2. Añadir la key como Secret en Supabase Edge Functions (NO en el cliente)
-3. El modelo a usar es `claude-haiku-4-5-20251001`
+1. https://dev.meta.ai → Billing activo → API keys → Create API key (`lexia`) → copiar (empieza por `LLM_`, solo se muestra una vez)
+2. Guardarla como secret `MODEL_API_KEY` en Supabase Edge Functions (NUNCA en el cliente)
+3. Probarla: `read -s MODEL_API_KEY && export MODEL_API_KEY && ./scripts/muse-smoke-test.sh es`
 
 ---
 
@@ -285,7 +287,9 @@ EXPO_PUBLIC_ADMOB_REWARDED_ANDROID=ca-app-pub-XXXX/XXXX
 ### En Supabase → Edge Functions → Secrets (nunca en el cliente)
 
 ```
-ANTHROPIC_API_KEY=sk-ant-XXXX
+MODEL_API_KEY=LLM_XXXX          # Meta Model API (Muse)
+MUSE_MODEL=muse-spark-1.3       # opcional
+DAILY_AI_WORD_LIMIT=40          # opcional
 ```
 
 ---
@@ -608,7 +612,7 @@ Ejecuta la Fase 3:
    - Verificar JWT en Authorization header → 401 si no hay
    - Body: { language, difficulty, theme?, excludeWords? }
    - Consultar caché primero (60% probabilidad si hay ≥3 items disponibles)
-   - Si llama Claude: model=claude-haiku-4-5-20251001, max_tokens=200
+   - Si llama Muse: model=muse-spark-1.3 (MUSE_MODEL), reasoning_effort=low, json_schema estricto, 5 candidatas por llamada
      Prompts por dificultad+idioma; tema opcional; excludeWords hasta 20
      Respuesta JSON: { word, definition, hint }
    - Validar word: exactamente 5 chars A-Z
@@ -920,7 +924,7 @@ Ejecuta la Fase 10:
 | #   | Servicio                      | URL de registro / acceso                    | Costo                            |
 | --- | ----------------------------- | ------------------------------------------- | -------------------------------- |
 | 1   | **Supabase**                  | https://supabase.com/dashboard/sign-up      | Free / $25 mes                   |
-| 2   | **Anthropic Console**         | https://console.anthropic.com               | Pay-as-you-go (~$0.0002/palabra) |
+| 2   | **Meta Model API (Muse)**     | https://dev.meta.ai                         | Pay-as-you-go (~$0.005/llamada)  |
 | 3   | **RevenueCat**                | https://app.revenuecat.com/signup           | Free hasta $2.5k MRR             |
 | 4   | **Google AdMob**              | https://admob.google.com/home               | Gratis (ingresos por CPM)        |
 | 5   | **Apple Developer**           | https://developer.apple.com/programs/enroll | $99 USD/año                      |

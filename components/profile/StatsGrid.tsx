@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { View, Text } from 'react-native'
-import type { Language, PlayerStats } from '@/types'
+import type { Language, LocalStats } from '@/types'
 import { COPY } from '@/constants/copy'
 import { Colors } from '@/constants/colors'
 
 interface Props {
-  stats: PlayerStats
+  stats: LocalStats
   language: Language
   winRate: number
 }

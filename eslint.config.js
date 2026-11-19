@@ -15,6 +15,10 @@ module.exports = defineConfig([
     },
   },
   {
+    files: ['scripts/**'],
+    rules: { 'no-console': 'off' },
+  },
+  {
     ignores: ['node_modules/**', 'ios/**', 'android/**', '.expo/**', 'supabase/functions/**'],
   },
 ])

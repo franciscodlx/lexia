@@ -4,6 +4,7 @@ import type { SharedValue } from 'react-native-reanimated'
 import * as Haptics from 'expo-haptics'
 import type { GameStatus, Language, LetterCell, LetterStatus } from '@/types'
 import { WORD_LENGTH, MAX_ROWS } from '@/constants/config'
+import { COPY } from '@/constants/copy'
 import { createEmptyBoard, evaluateGuess, isValidWord } from '@/lib/utils'
 
 // Priority order for usedLetters — never downgrade a letter status
@@ -20,6 +21,19 @@ function mergeLetterStatus(prev: LetterStatus | undefined, next: LetterStatus): 
   return STATUS_PRIORITY[next] > STATUS_PRIORITY[prev] ? next : prev
 }
 
+/** Letter → best known status, derived from the evaluated rows of a board. */
+function usedLettersFromBoard(board: LetterCell[][]): Record<string, LetterStatus> {
+  const used: Record<string, LetterStatus> = {}
+  for (const row of board) {
+    for (const cell of row) {
+      if (cell.status === 'correct' || cell.status === 'present' || cell.status === 'absent') {
+        used[cell.letter] = mergeLetterStatus(used[cell.letter], cell.status)
+      }
+    }
+  }
+  return used
+}
+
 export function useWordleGame() {
   // ─── Core state ─────────────────────────────────────────────────────────
   const [board, setBoard] = useState<LetterCell[][]>(createEmptyBoard())
@@ -31,10 +45,14 @@ export function useWordleGame() {
   const [hints, setHints] = useState(0)
   const [usedLetters, setUsedLetters] = useState<Record<string, LetterStatus>>({})
   const [message, setMessage] = useState<string | null>(null)
+  // Number of rows already submitted and evaluated (= guesses used)
+  const [completedRows, setCompletedRows] = useState(0)
 
   // Keep a ref for targetWord so callbacks always have latest value
-  // (resetGame is the only writer of targetWord and syncs the ref itself)
+  // (resetGame/restoreGame are the only writers of targetWord and sync the ref)
   const targetRef = useRef(targetWord)
+  // Blocks input while a row is flipping, so a fast double ENTER can't submit twice
+  const revealingRef = useRef(false)
 
   // ─── Animations ──────────────────────────────────────────────────────────
   // useSharedValue can't run inside loops, so the per-row/per-cell shared
@@ -45,7 +63,7 @@ export function useWordleGame() {
   }>(() => ({
     // One shake value per row
     shake: Array.from({ length: MAX_ROWS }, () => makeMutable(0)),
-    // One flip progress per cell [row][col] → 0..1
+    // One flip progress per cell [row][col] → 0..2
     flip: Array.from({ length: MAX_ROWS }, () =>
       Array.from({ length: WORD_LENGTH }, () => makeMutable(0))
     ),
@@ -96,7 +114,7 @@ export function useWordleGame() {
   // ─── handleKey ───────────────────────────────────────────────────────────
   const handleKey = useCallback(
     (key: string) => {
-      if (gameStatus !== 'playing') return
+      if (gameStatus !== 'playing' || revealingRef.current) return
 
       // DELETE
       if (key === '⌫') {
@@ -115,35 +133,40 @@ export function useWordleGame() {
         if (currentCol < WORD_LENGTH) {
           shakeRow(currentRow)
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
+          showMessage(COPY[language].game.notEnoughLetters)
           return
         }
 
         const guess = board[currentRow].map((c) => c.letter).join('')
 
-        if (!isValidWord(guess, language)) {
+        // The target is always accepted (AI words may be missing from the dictionary)
+        if (guess !== targetRef.current && !isValidWord(guess, language)) {
           shakeRow(currentRow)
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
-          showMessage(language === 'es' ? 'Palabra no encontrada' : 'Word not found')
+          showMessage(COPY[language].game.wordNotFound)
           return
         }
 
         const result = evaluateGuess(guess, targetRef.current)
+        const row = currentRow
+        revealingRef.current = true
 
         // Update board with results (status = 'tbd' until flip completes)
         setBoard((prev) => {
           const next = prev.map((r) => r.map((c) => ({ ...c })))
           result.forEach((cell, col) => {
-            next[currentRow][col] = { letter: cell.letter, status: 'tbd' }
+            next[row][col] = { letter: cell.letter, status: 'tbd' }
           })
           return next
         })
 
         // Flip animation, then reveal real statuses
-        flipRow(currentRow, () => {
+        flipRow(row, () => {
+          revealingRef.current = false
           setBoard((prev) => {
             const next = prev.map((r) => r.map((c) => ({ ...c })))
             result.forEach((cell, col) => {
-              next[currentRow][col] = cell
+              next[row][col] = cell
             })
             return next
           })
@@ -157,8 +180,9 @@ export function useWordleGame() {
             return next
           })
 
+          setCompletedRows(row + 1)
           const won = result.every((c) => c.status === 'correct')
-          const nextRow = currentRow + 1
+          const nextRow = row + 1
 
           if (won) {
             setGameStatus('won')
@@ -176,8 +200,9 @@ export function useWordleGame() {
         return
       }
 
-      // LETTER — only A-Z and Ñ
+      // LETTER — A-Z, plus Ñ in Spanish
       if (!/^[A-ZÑ]$/.test(key)) return
+      if (key === 'Ñ' && language !== 'es') return
       if (currentCol >= WORD_LENGTH) return
 
       setBoard((prev) => {
@@ -193,19 +218,21 @@ export function useWordleGame() {
 
   // ─── useHint: reveal first incorrect letter in current row ───────────────
   const useHint = useCallback(() => {
-    if (gameStatus !== 'playing' || hints <= 0) return
+    if (gameStatus !== 'playing' || hints <= 0 || revealingRef.current) return
 
     const target = targetRef.current
     const currentGuess = board[currentRow]
 
     // Find first position that doesn't match the target
-    const hintCol = currentGuess.findIndex(
-      (cell, i) => cell.letter !== target[i]
-    )
+    const hintCol = currentGuess.findIndex((cell, i) => cell.letter !== target[i])
     if (hintCol === -1) return // all letters already correct
 
     setBoard((prev) => {
       const next = prev.map((r) => r.map((c) => ({ ...c })))
+      // Fill any gap before the hint so the row stays contiguous
+      for (let i = 0; i < hintCol; i++) {
+        if (!next[currentRow][i].letter) next[currentRow][i] = { letter: target[i], status: 'tbd' }
+      }
       next[currentRow][hintCol] = { letter: target[hintCol], status: 'tbd' }
       return next
     })
@@ -221,15 +248,29 @@ export function useWordleGame() {
     setHints((h) => h + 1)
   }, [])
 
+  // ─── forfeit: ends the game as lost (e.g. the AI-mode timer ran out) ─────
+  const forfeit = useCallback(() => {
+    if (gameStatus !== 'playing') return
+    revealingRef.current = false
+    // Drop the unsubmitted letters of the current row
+    setBoard((prev) =>
+      prev.map((r, i) => (i < completedRows ? r : r.map(() => ({ letter: '', status: 'empty' as LetterStatus }))))
+    )
+    setGameStatus('lost')
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+  }, [completedRows, gameStatus])
+
   // ─── resetGame ───────────────────────────────────────────────────────────
   const resetGame = useCallback(
     (word: string, lang: Language, initialHints = 0) => {
       setBoard(createEmptyBoard())
       setCurrentRow(0)
       setCurrentCol(0)
+      setCompletedRows(0)
       setGameStatus('playing')
       setTargetWord(word)
       targetRef.current = word
+      revealingRef.current = false
       setLanguage(lang)
       setHints(initialHints)
       setUsedLetters({})
@@ -241,11 +282,27 @@ export function useWordleGame() {
     [flipValues, shakeValues]
   )
 
+  // ─── restoreGame: show a finished game again (e.g. today's daily word) ───
+  const restoreGame = useCallback(
+    (word: string, lang: Language, savedBoard: LetterCell[][], status: GameStatus, rows: number) => {
+      resetGame(word, lang)
+      setBoard(savedBoard)
+      setCompletedRows(rows)
+      setCurrentRow(Math.min(Math.max(rows - 1, 0), MAX_ROWS - 1))
+      setUsedLetters(usedLettersFromBoard(savedBoard))
+      setGameStatus(status)
+      // Flipped cells show their colored face
+      flipValues.forEach((row, r) => row.forEach((v) => v.set(r < rows ? 2 : 0)))
+    },
+    [flipValues, resetGame]
+  )
+
   return {
     // State
     board,
     currentRow,
     currentCol,
+    completedRows,
     gameStatus,
     targetWord,
     language,
@@ -259,7 +316,9 @@ export function useWordleGame() {
     handleKey,
     useHint,
     addHint,
+    forfeit,
     resetGame,
+    restoreGame,
     showMessage,
   }
 }

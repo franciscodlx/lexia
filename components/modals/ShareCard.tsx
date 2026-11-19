@@ -1,6 +1,7 @@
 import { Share } from 'react-native'
 import type { Language, LetterCell } from '@/types'
 import { COPY } from '@/constants/copy'
+import { boardToEmojis } from '@/lib/utils'
 
 export async function shareResult({
   board,
@@ -17,25 +18,14 @@ export async function shareResult({
 }) {
   const copy = COPY[language]
 
-  const emojis = board
-    .slice(0, completedRows)
-    .map((row) =>
-      row
-        .map((cell) => {
-          if (cell.status === 'correct') return '🟩'
-          if (cell.status === 'present') return '🟨'
-          return '⬛'
-        })
-        .join('')
-    )
-    .join('\n')
+  const emojis = boardToEmojis(board, completedRows)
 
   const modeTag = isAIMode ? ` [${copy.game.aiMode}]` : ''
   const result = won
     ? `${completedRows}/6`
     : 'X/6'
 
-  const text = `${copy.game.title}${modeTag} ${result}\n\n${emojis}\n\nhttps://lexia.app`
+  const text = `${copy.game.title}${modeTag} ${result}\n\n${emojis}`
 
   try {
     await Share.share({ message: text })

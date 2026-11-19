@@ -250,4 +250,112 @@ describe('useWordleGame', () => {
     expect(result.current.board[0][0]).toEqual({ letter: '', status: 'empty' })
     expect(result.current.usedLetters).toEqual({})
   })
+
+  it('counts completedRows: 1 on a first-try win, 6 on a loss', () => {
+    const { result } = renderHook(() => useWordleGame())
+    act(() => {
+      result.current.resetGame('GATOS', 'es')
+    })
+    typeWord(result, 'GATOS')
+    pressEnterAndFlip(result)
+    expect(result.current.completedRows).toBe(1)
+
+    act(() => {
+      result.current.resetGame('GATOS', 'es')
+    })
+    for (let i = 0; i < 6; i++) {
+      typeWord(result, 'MUNDO')
+      pressEnterAndFlip(result)
+    }
+    expect(result.current.completedRows).toBe(6)
+  })
+
+  it('always accepts the target even if it is not in the dictionary (AI words)', () => {
+    const { result } = renderHook(() => useWordleGame())
+    act(() => {
+      result.current.resetGame('QXZJK', 'en')
+    })
+    typeWord(result, 'QXZJK')
+    pressEnterAndFlip(result)
+    expect(result.current.gameStatus).toBe('won')
+  })
+
+  it('accepts real dictionary words that are not answers', () => {
+    const { result } = renderHook(() => useWordleGame())
+    act(() => {
+      result.current.resetGame('GATOS', 'es')
+    })
+    typeWord(result, 'COMEN')
+    pressEnterAndFlip(result)
+    expect(result.current.currentRow).toBe(1)
+  })
+
+  it('ignores Ñ in English games', () => {
+    const { result } = renderHook(() => useWordleGame())
+    act(() => {
+      result.current.resetGame('HOUSE', 'en')
+    })
+    act(() => {
+      result.current.handleKey('Ñ')
+    })
+    expect(result.current.currentCol).toBe(0)
+  })
+
+  it('ignores keys while a row is still flipping', () => {
+    const { result } = renderHook(() => useWordleGame())
+    act(() => {
+      result.current.resetGame('GATOS', 'es')
+    })
+    typeWord(result, 'MUNDO')
+    act(() => {
+      result.current.handleKey('ENTER')
+    })
+    act(() => {
+      result.current.handleKey('ENTER')
+      result.current.handleKey('P')
+    })
+    act(() => {
+      jest.runAllTimers()
+    })
+    expect(result.current.currentRow).toBe(1)
+    expect(result.current.board[1][0].letter).toBe('')
+  })
+
+  it('forfeit ends the game as lost keeping only submitted rows', () => {
+    const { result } = renderHook(() => useWordleGame())
+    act(() => {
+      result.current.resetGame('GATOS', 'es')
+    })
+    typeWord(result, 'MUNDO')
+    pressEnterAndFlip(result)
+    typeWord(result, 'PE')
+    act(() => {
+      result.current.forfeit()
+    })
+    expect(result.current.gameStatus).toBe('lost')
+    expect(result.current.completedRows).toBe(1)
+    expect(result.current.board[1][0].letter).toBe('')
+  })
+
+  it('restoreGame shows a finished board with its keyboard colors', () => {
+    const { result } = renderHook(() => useWordleGame())
+    act(() => {
+      result.current.resetGame('GATOS', 'es')
+    })
+    typeWord(result, 'GATOS')
+    pressEnterAndFlip(result)
+    const saved = result.current.board
+
+    const restored = renderHook(() => useWordleGame()).result
+    act(() => {
+      restored.current.restoreGame('GATOS', 'es', saved, 'won', 1)
+    })
+    expect(restored.current.gameStatus).toBe('won')
+    expect(restored.current.completedRows).toBe(1)
+    expect(restored.current.usedLetters['G']).toBe('correct')
+    act(() => {
+      restored.current.handleKey('M')
+    })
+    expect(restored.current.board[1][0].letter).toBe('')
+  })
 })

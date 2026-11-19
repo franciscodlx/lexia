@@ -3,6 +3,7 @@ import * as Notifications from 'expo-notifications'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import type { Language } from '@/types'
 import { ASYNC_STORAGE_KEYS } from '@/constants/config'
+import { COPY } from '@/constants/copy'
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -14,17 +15,6 @@ Notifications.setNotificationHandler({
   }),
 })
 
-const NOTIFICATION_TEXTS: Record<Language, { title: string; body: string }> = {
-  es: {
-    title: '¡Tu palabra del día te espera! 📝',
-    body: 'Abre Lexia y demuestra que eres el mejor en palabras.',
-  },
-  en: {
-    title: "Your daily word is waiting! 📝",
-    body: 'Open Lexia and show off your vocabulary skills.',
-  },
-}
-
 export function useNotifications() {
   const requestPermissions = useCallback(async (): Promise<boolean> => {
     const { status: existing } = await Notifications.getPermissionsAsync()
@@ -33,21 +23,16 @@ export function useNotifications() {
     return status === 'granted'
   }, [])
 
+  /** Schedules (or cancels) the 9:00 reminder. Resolves to whether it ended up enabled. */
   const scheduleDailyReminder = useCallback(
-    async (language: Language, enabled: boolean) => {
+    async (language: Language, enabled: boolean): Promise<boolean> => {
       await Notifications.cancelAllScheduledNotificationsAsync()
 
-      await AsyncStorage.setItem(
-        ASYNC_STORAGE_KEYS.NOTIFICATIONS_ENABLED,
-        JSON.stringify(enabled)
-      )
+      const granted = enabled ? await requestPermissions() : false
+      await AsyncStorage.setItem(ASYNC_STORAGE_KEYS.NOTIFICATIONS_ENABLED, JSON.stringify(granted))
+      if (!granted) return false
 
-      if (!enabled) return
-
-      const granted = await requestPermissions()
-      if (!granted) return
-
-      const { title, body } = NOTIFICATION_TEXTS[language]
+      const { title, body } = COPY[language].notifications
 
       await Notifications.scheduleNotificationAsync({
         content: { title, body, sound: false },
@@ -57,6 +42,7 @@ export function useNotifications() {
           minute: 0,
         },
       })
+      return true
     },
     [requestPermissions]
   )

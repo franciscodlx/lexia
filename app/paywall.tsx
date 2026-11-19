@@ -1,22 +1,33 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { View, Text, Pressable, ScrollView, ActivityIndicator } from 'react-native'
 import { router } from 'expo-router'
 import { usePremium } from '@/hooks/usePremium'
-import { useUserStore } from '@/store/userStore'
+import { useLanguage } from '@/store/gameStore'
 import { COPY } from '@/constants/copy'
 import { Colors } from '@/constants/colors'
 import type { Language } from '@/types'
 
 export default function Paywall() {
-  const { profile } = useUserStore()
-  const language: Language = profile?.language ?? 'es'
+  const language: Language = useLanguage()
   const copy = COPY[language]
 
-  const { offerings, isLoading, isPremium, loadOfferings, purchase, restore } = usePremium()
+  const { offerings, isLoading, isPremium, error, loadOfferings, purchase, restore } = usePremium()
+  const [notice, setNotice] = useState<string | null>(null)
 
   useEffect(() => {
     loadOfferings()
   }, [loadOfferings])
+
+  // Close as soon as premium is active (purchase, restore or listener)
+  useEffect(() => {
+    if (isPremium && router.canGoBack()) router.back()
+  }, [isPremium])
+
+  const handleRestore = async () => {
+    setNotice(null)
+    const ok = await restore()
+    if (!ok) setNotice(copy.profile.noPurchases)
+  }
 
   const benefits = [
     copy.paywall.benefit1,
@@ -27,10 +38,7 @@ export default function Paywall() {
 
   const packages = offerings?.availablePackages ?? []
 
-  if (isPremium) {
-    router.back()
-    return null
-  }
+  if (isPremium) return null
 
   return (
     <View className="flex-1" style={{ backgroundColor: Colors.background }}>
@@ -75,7 +83,12 @@ export default function Paywall() {
             {packages.map((pkg) => (
               <Pressable
                 key={pkg.identifier}
-                onPress={() => purchase(pkg)}
+                onPress={async () => {
+                  setNotice(null)
+                  const ok = await purchase(pkg)
+                  if (!ok) setNotice(copy.paywall.purchaseFailed)
+                }}
+                disabled={isLoading}
                 style={{
                   backgroundColor:
                     pkg.packageType === 'LIFETIME' ? Colors.premium : Colors.surface,
@@ -96,20 +109,29 @@ export default function Paywall() {
                     ? copy.paywall.lifetime
                     : copy.paywall.monthly}
                 </Text>
+                <Text
+                  className="text-sm mt-1"
+                  style={{ color: pkg.packageType === 'LIFETIME' ? '#000' : Colors.textMuted }}
+                >
+                  {pkg.product.priceString}
+                </Text>
                 {pkg.packageType === 'LIFETIME' && (
                   <Text
                     className="text-xs mt-1"
                     style={{ color: '#000', opacity: 0.7 }}
                   >
-                    {language === 'es' ? 'Sin renovación automática' : 'No auto-renewal'}
+                    {copy.paywall.noAutoRenew}
                   </Text>
                 )}
               </Pressable>
             ))}
           </View>
         ) : (
-          // Fallback when RevenueCat not configured
-          <View className="gap-3">
+          // RevenueCat not configured / no offering yet
+          <View className="gap-3" style={{ opacity: 0.5 }}>
+            <Text className="text-center text-sm" style={{ color: Colors.textMuted }}>
+              {copy.paywall.notAvailable}
+            </Text>
             <View
               className="rounded-2xl p-5 items-center"
               style={{ backgroundColor: Colors.premium, opacity: 0.9 }}
@@ -128,7 +150,13 @@ export default function Paywall() {
         )}
 
         {/* Restore */}
-        <Pressable onPress={restore} className="items-center mt-6 py-2">
+        {notice && error !== 'not_configured' ? (
+          <Text className="text-center text-sm mt-4" style={{ color: Colors.error }}>
+            {notice}
+          </Text>
+        ) : null}
+
+        <Pressable onPress={handleRestore} className="items-center mt-6 py-2">
           <Text className="text-sm" style={{ color: Colors.textMuted }}>
             {copy.paywall.restore}
           </Text>

@@ -4,7 +4,7 @@ import { StatsGrid } from '@/components/profile/StatsGrid'
 import { CountdownTimer } from '@/components/ui/CountdownTimer'
 import { Button } from '@/components/ui/Button'
 import { shareResult } from './ShareCard'
-import type { Language, LetterCell, PlayerStats } from '@/types'
+import type { Language, LetterCell, LocalStats } from '@/types'
 import { COPY } from '@/constants/copy'
 import { Colors } from '@/constants/colors'
 import { secondsUntilMidnight } from '@/lib/utils'
@@ -16,7 +16,7 @@ interface Props {
   definition?: string
   board: LetterCell[][]
   completedRows: number
-  stats: PlayerStats | null
+  stats: LocalStats | null
   language: Language
   winRate: number
   isAIMode?: boolean

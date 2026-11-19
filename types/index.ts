@@ -82,3 +82,16 @@ export interface GameResult {
   isAIMode: boolean
   playedAt: string
 }
+
+/** Stats shape shared by cloud stats (PlayerStats) and guest/device stats. */
+export type LocalStats = Omit<PlayerStats, 'userId'>
+
+/** A finished daily game, kept on the device for the rest of the day. */
+export interface DailyResult {
+  date: string // YYYY-MM-DD (local)
+  language: Language
+  word: string
+  board: LetterCell[][]
+  won: boolean
+  guesses: number // rows used (1-6)
+}
