@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef } from 'react'
-import { useSharedValue, withSequence, withTiming, withDelay } from 'react-native-reanimated'
+import { makeMutable, withSequence, withTiming, withDelay } from 'react-native-reanimated'
+import type { SharedValue } from 'react-native-reanimated'
 import * as Haptics from 'expo-haptics'
-import type { GameState, GameStatus, Language, LetterCell, LetterStatus } from '@/types'
+import type { GameStatus, Language, LetterCell, LetterStatus } from '@/types'
 import { WORD_LENGTH, MAX_ROWS } from '@/constants/config'
 import { createEmptyBoard, evaluateGuess, isValidWord } from '@/lib/utils'
 
@@ -32,25 +33,35 @@ export function useWordleGame() {
   const [message, setMessage] = useState<string | null>(null)
 
   // Keep a ref for targetWord so callbacks always have latest value
+  // (resetGame is the only writer of targetWord and syncs the ref itself)
   const targetRef = useRef(targetWord)
-  targetRef.current = targetWord
 
   // ─── Animations ──────────────────────────────────────────────────────────
-  // One shake value per row
-  const shakeValues = Array.from({ length: MAX_ROWS }, () => useSharedValue(0))
-  // One flip progress per cell [row][col] → 0..1
-  const flipValues = Array.from({ length: MAX_ROWS }, () =>
-    Array.from({ length: WORD_LENGTH }, () => useSharedValue(0))
-  )
+  // useSharedValue can't run inside loops, so the per-row/per-cell shared
+  // values are created once with makeMutable via a lazy state initializer.
+  const [anim] = useState<{
+    shake: SharedValue<number>[]
+    flip: SharedValue<number>[][]
+  }>(() => ({
+    // One shake value per row
+    shake: Array.from({ length: MAX_ROWS }, () => makeMutable(0)),
+    // One flip progress per cell [row][col] → 0..1
+    flip: Array.from({ length: MAX_ROWS }, () =>
+      Array.from({ length: WORD_LENGTH }, () => makeMutable(0))
+    ),
+  }))
+  const { shake: shakeValues, flip: flipValues } = anim
 
   const shakeRow = useCallback(
     (row: number) => {
-      shakeValues[row].value = withSequence(
-        withTiming(-8, { duration: 50 }),
-        withTiming(8, { duration: 50 }),
-        withTiming(-6, { duration: 50 }),
-        withTiming(6, { duration: 50 }),
-        withTiming(0, { duration: 50 })
+      shakeValues[row].set(
+        withSequence(
+          withTiming(-8, { duration: 50 }),
+          withTiming(8, { duration: 50 }),
+          withTiming(-6, { duration: 50 }),
+          withTiming(6, { duration: 50 }),
+          withTiming(0, { duration: 50 })
+        )
       )
     },
     [shakeValues]
@@ -59,11 +70,13 @@ export function useWordleGame() {
   const flipRow = useCallback(
     (row: number, onComplete?: () => void) => {
       flipValues[row].forEach((val, col) => {
-        val.value = withDelay(
-          col * 300,
-          withSequence(
-            withTiming(1, { duration: 250 }),
-            withTiming(2, { duration: 250 })
+        val.set(
+          withDelay(
+            col * 300,
+            withSequence(
+              withTiming(1, { duration: 250 }),
+              withTiming(2, { duration: 250 })
+            )
           )
         )
       })
@@ -222,8 +235,8 @@ export function useWordleGame() {
       setUsedLetters({})
       setMessage(null)
       // Reset animations
-      shakeValues.forEach((v) => { v.value = 0 })
-      flipValues.forEach((row) => row.forEach((v) => { v.value = 0 }))
+      shakeValues.forEach((v) => v.set(0))
+      flipValues.forEach((row) => row.forEach((v) => v.set(0)))
     },
     [flipValues, shakeValues]
   )

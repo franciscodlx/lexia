@@ -1,0 +1,26 @@
+project_id = "rxfdmdsqtlsvkakvctjv"
+
+[auth]
+site_url = "lexia://auth/callback"
+additional_redirect_urls = ["lexia://auth/callback"]
+
+[auth.email]
+enable_signup = true
+# Sin confirmación por email durante desarrollo (el SMTP integrado del free
+# tier limita a ~2 correos/hora). Activar + SMTP propio antes de producción.
+enable_confirmations = false
+
+# Apple Sign-In — flujo nativo (signInWithIdToken): solo requiere el bundle ID
+# como client_id autorizado. El secret .p8 solo hace falta para OAuth web.
+[auth.external.apple]
+enabled = true
+client_id = "com.fcodlx.lexia"
+secret = ""
+
+# Google Sign-In — pendiente de crear las credenciales OAuth en Google Cloud
+# (CLAUDE.md sección "Google Cloud Console"). Al tenerlas:
+#   enabled = true
+#   client_id = "IOS_CLIENT_ID.apps.googleusercontent.com,WEB_CLIENT_ID.apps.googleusercontent.com"
+#   skip_nonce_check = true   # el SDK nativo de Google no envía nonce
+[auth.external.google]
+enabled = false

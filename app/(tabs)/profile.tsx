@@ -13,8 +13,8 @@ import { Colors } from '@/constants/colors'
 import type { Language } from '@/types'
 
 export default function ProfileScreen() {
-  const { isAuthenticated, profile, stats, winRate, updateProfile, signOut } = useAuth()
-  const { isPremium, restore, isLoading: premiumLoading } = usePremium()
+  const { isAuthenticated, profile, stats, updateProfile, signOut } = useAuth()
+  const { isPremium, restore } = usePremium()
   const { scheduleDailyReminder, isNotificationsEnabled } = useNotifications()
 
   const [showAuthModal, setShowAuthModal] = useState(false)

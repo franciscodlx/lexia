@@ -25,16 +25,13 @@ export function usePremium() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    initRevenueCat()
-    checkStatus()
-  }, [profile?.id])
+  const profileId = profile?.id ?? null
 
   const checkStatus = useCallback(async () => {
     try {
       initRevenueCat()
-      if (profile?.id) {
-        await Purchases.logIn(profile.id)
+      if (profileId) {
+        await Purchases.logIn(profileId)
       }
       const info = await Purchases.getCustomerInfo()
       const active = info.entitlements.active['premium'] !== undefined
@@ -42,7 +39,11 @@ export function usePremium() {
     } catch {
       // Fail silently — user stays non-premium
     }
-  }, [profile?.id, setIsPremium])
+  }, [profileId, setIsPremium])
+
+  useEffect(() => {
+    checkStatus()
+  }, [checkStatus])
 
   const loadOfferings = useCallback(async () => {
     try {
@@ -50,7 +51,7 @@ export function usePremium() {
       initRevenueCat()
       const res = await Purchases.getOfferings()
       setOfferings(res.current)
-    } catch (e) {
+    } catch {
       setError('Could not load offerings')
     } finally {
       setIsLoading(false)

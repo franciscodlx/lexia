@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { View, Text, Pressable } from 'react-native'
 import { router } from 'expo-router'
 import { WordleGame } from '@/components/game/WordleGame'
@@ -17,12 +17,12 @@ import type { Difficulty, Language } from '@/types'
 type Screen = 'selector' | 'game' | 'stats'
 
 export default function AIMode() {
-  const { isAuthenticated, registrationPrompt, stats, winRate, dismissRegistrationPrompt } = useAuth()
+  const { isAuthenticated, stats, winRate } = useAuth()
   const { isPremium } = useUserStore()
   const { generateWord, isLoading: generatingWord } = useAIWord()
 
   const [screen, setScreen] = useState<Screen>('selector')
-  const [language, setLanguage] = useState<Language>('es')
+  const [language] = useState<Language>('es')
   const [difficulty, setDifficulty] = useState<Difficulty>('medium')
   const [theme, setTheme] = useState<string | undefined>()
   const [definition, setDefinition] = useState<string | undefined>()
@@ -30,11 +30,29 @@ export default function AIMode() {
 
   const {
     board, currentRow, gameStatus, hints, usedLetters, message,
-    shakeValues, flipValues, handleKey, useHint, addHint, resetGame,
+    shakeValues, flipValues, handleKey, useHint, resetGame,
   } = useWordleGame()
 
   const copy = COPY[language]
   const diffConfig = DIFFICULTY_CONFIGS.find((d) => d.key === difficulty)!
+
+  // Generate word and start game
+  const handlePlay = useCallback(async () => {
+    const result = await generateWord(language, difficulty, theme)
+    if (!result) return
+    setDefinition(result.definition)
+    const hintsCount = diffConfig.maxHints
+    resetGame(result.word, language, hintsCount)
+    setScreen('game')
+  }, [difficulty, diffConfig.maxHints, generateWord, language, resetGame, theme])
+
+  // When the game ends, show the stats screen after the flip settles
+  useEffect(() => {
+    if (screen === 'game' && (gameStatus === 'won' || gameStatus === 'lost')) {
+      const timer = setTimeout(() => setScreen('stats'), 1800)
+      return () => clearTimeout(timer)
+    }
+  }, [gameStatus, screen])
 
   // Guard: not authenticated
   if (!isAuthenticated) {
@@ -91,23 +109,6 @@ export default function AIMode() {
       </View>
     )
   }
-
-  // Generate word and start game
-  const handlePlay = useCallback(async () => {
-    const result = await generateWord(language, difficulty, theme)
-    if (!result) return
-    setDefinition(result.definition)
-    const hintsCount = diffConfig.maxHints
-    resetGame(result.word, language, hintsCount)
-    setScreen('game')
-  }, [difficulty, diffConfig.maxHints, generateWord, language, resetGame, theme])
-
-  // When game ends show stats
-  const handleGameEnd = useCallback(() => {
-    if (gameStatus === 'won' || gameStatus === 'lost') {
-      setTimeout(() => setScreen('stats'), 1800)
-    }
-  }, [gameStatus])
 
   if (screen === 'selector') {
     return (
@@ -169,10 +170,7 @@ export default function AIMode() {
         message={message}
         shakeValues={shakeValues}
         flipValues={flipValues}
-        handleKey={(key) => {
-          handleKey(key)
-          handleGameEnd()
-        }}
+        handleKey={handleKey}
         onUseHint={useHint}
         title={copy.ai.title}
         subtitle={diffConfig.label[language]}

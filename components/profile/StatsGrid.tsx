@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { View, Text, Animated } from 'react-native'
+import { View, Text } from 'react-native'
 import type { Language, PlayerStats } from '@/types'
 import { COPY } from '@/constants/copy'
 import { Colors } from '@/constants/colors'

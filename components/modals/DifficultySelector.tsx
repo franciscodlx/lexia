@@ -1,4 +1,4 @@
-import { View, Text, Pressable, ScrollView } from 'react-native'
+import { View, Text, Pressable } from 'react-native'
 import { Button } from '@/components/ui/Button'
 import { DIFFICULTY_CONFIGS, THEMES } from '@/constants/config'
 import { COPY } from '@/constants/copy'
@@ -38,14 +38,14 @@ export function DifficultySelector({
             <Pressable
               key={config.key}
               onPress={() => onDifficultyChange(config.key)}
-              style={({ pressed }) => ({
+              style={{
                 backgroundColor: isSelected ? config.color + '22' : Colors.surface,
                 borderWidth: 2,
                 borderColor: isSelected ? config.color : Colors.border,
                 borderRadius: 12,
                 padding: 14,
-                opacity: pressed ? 0.8 : 1,
-              })}
+                opacity: 1,
+              }}
             >
               <View className="flex-row items-center gap-3">
                 <Text className="text-2xl">{config.emoji}</Text>

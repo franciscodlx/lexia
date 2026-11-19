@@ -53,15 +53,17 @@ export function GameKeyboard({ language, usedLetters, onKey, disabled = false }:
               <Pressable
                 key={key}
                 onPress={() => !disabled && onKey(key)}
-                style={({ pressed }) => ({
+                // Plain object instead of a style function: NativeWind's
+                // interop drops function styles on wrapped components.
+                style={{
                   width: isWide ? wideKeyWidth : keyWidth,
                   height: keyHeight,
                   backgroundColor: bg,
                   borderRadius: 4,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  opacity: pressed || disabled ? 0.7 : 1,
-                })}
+                  opacity: disabled ? 0.7 : 1,
+                }}
               >
                 <Text
                   style={{

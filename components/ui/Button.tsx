@@ -45,7 +45,7 @@ export function Button({
     <Pressable
       onPress={onPress}
       disabled={isDisabled}
-      style={({ pressed }) => ({
+      style={{
         backgroundColor: bg,
         paddingVertical: ss.py,
         paddingHorizontal: ss.px,
@@ -56,8 +56,8 @@ export function Button({
         gap: 8,
         borderWidth: vs.border ? 1 : 0,
         borderColor: vs.border,
-        opacity: pressed || isDisabled ? 0.65 : 1,
-      })}
+        opacity: isDisabled ? 0.65 : 1,
+      }}
     >
       {loading ? (
         <ActivityIndicator size="small" color={vs.text} />

@@ -20,16 +20,15 @@ export default function DailyGame() {
   const [language, setLanguage] = useState<Language>(DEFAULT_LANGUAGE)
   const [alreadyPlayed, setAlreadyPlayed] = useState(false)
   const [showStats, setShowStats] = useState(false)
-  const [aiDefinition, setAiDefinition] = useState<string | undefined>()
 
   const {
-    board, currentRow, gameStatus, hints, usedLetters, message,
+    board, currentRow, gameStatus, targetWord, hints, usedLetters, message,
     shakeValues, flipValues, handleKey, useHint, addHint, resetGame,
   } = useWordleGame()
 
-  const { isAuthenticated, registrationPrompt, stats, winRate, dismissRegistrationPrompt } = useAuth()
+  const { registrationPrompt, stats, winRate, dismissRegistrationPrompt } = useAuth()
   const { showAd, isLoaded: adLoaded } = useRewardedAd()
-  const { localGamesCount, incrementLocalGames } = useGameStore()
+  const { incrementLocalGames } = useGameStore()
 
   const copy = COPY[language]
 
@@ -52,7 +51,7 @@ export default function DailyGame() {
       resetGame(word, lang)
     }
     init()
-  }, [])
+  }, [resetGame])
 
   // When language toggles, restart with new daily word
   const handleLanguageChange = useCallback(
@@ -115,6 +114,7 @@ export default function DailyGame() {
         flipValues={flipValues}
         handleKey={handleKey}
         onUseHint={useHint}
+        onWatchAd={adLoaded ? handleWatchAd : undefined}
         streak={streak}
         showLanguageToggle
         onLanguageChange={handleLanguageChange}
@@ -135,8 +135,7 @@ export default function DailyGame() {
       <StatsModal
         visible={showStats}
         won={gameStatus === 'won'}
-        targetWord={board[0]?.[0] ? '' : ''}
-        definition={aiDefinition}
+        targetWord={targetWord}
         board={board}
         completedRows={currentRow}
         stats={stats}

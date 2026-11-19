@@ -118,7 +118,7 @@ export function useAuth() {
     })
 
     await GoogleSignin.hasPlayServices()
-    const userInfo = await GoogleSignin.signIn()
+    await GoogleSignin.signIn()
     const tokens = await GoogleSignin.getTokens()
 
     const { error } = await supabase.auth.signInWithIdToken({
@@ -184,6 +184,7 @@ export function useAuth() {
     if (localGamesCount >= GAMES_BEFORE_REQUIRED) return 'required'
     if (
       localGamesCount >= GAMES_BEFORE_SUGGESTION &&
+      // eslint-disable-next-line react-hooks/purity -- time-gated prompt: reading the clock here only delays re-showing the suggestion, never changes committed UI
       (!lastPromptShown || Date.now() - lastPromptShown > 24 * 60 * 60 * 1000)
     ) {
       return 'suggestion'

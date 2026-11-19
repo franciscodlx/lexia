@@ -15,14 +15,14 @@ const REWARDED_AD_UNIT_ID =
 
 export function useRewardedAd() {
   const [isLoaded, setIsLoaded] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  // Loading starts as soon as the mount effect requests the first ad
+  const [isLoading, setIsLoading] = useState(true)
+  // Bumped when an ad closes so the effect below preloads the next one
+  const [reloadKey, setReloadKey] = useState(0)
   const adRef = useRef<RewardedAd | null>(null)
   const resolveRef = useRef<((rewarded: boolean) => void) | null>(null)
 
   const loadAd = useCallback(() => {
-    setIsLoaded(false)
-    setIsLoading(true)
-
     const ad = RewardedAd.createForAdRequest(REWARDED_AD_UNIT_ID, {
       requestNonPersonalizedAdsOnly: true,
     })
@@ -44,11 +44,12 @@ export function useRewardedAd() {
       unsubscribeLoaded()
       unsubscribeEarned()
       setIsLoaded(false)
+      setIsLoading(true)
       // If reward wasn't earned (user closed early)
       resolveRef.current?.(false)
       resolveRef.current = null
       // Preload next ad
-      loadAd()
+      setReloadKey((k) => k + 1)
     })
 
     ad.load()
@@ -60,7 +61,7 @@ export function useRewardedAd() {
     return () => {
       adRef.current = null
     }
-  }, [loadAd])
+  }, [loadAd, reloadKey])
 
   const showAd = useCallback((): Promise<boolean> => {
     return new Promise((resolve) => {

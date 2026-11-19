@@ -11,11 +11,17 @@ interface Props {
 export function CountdownTimer({ totalSeconds, onExpire, className }: Props) {
   const [remaining, setRemaining] = useState(totalSeconds)
   const onExpireRef = useRef(onExpire)
-  onExpireRef.current = onExpire
 
   useEffect(() => {
+    onExpireRef.current = onExpire
+  }, [onExpire])
+
+  // Restart the countdown when the configured duration changes
+  const [prevTotal, setPrevTotal] = useState(totalSeconds)
+  if (prevTotal !== totalSeconds) {
+    setPrevTotal(totalSeconds)
     setRemaining(totalSeconds)
-  }, [totalSeconds])
+  }
 
   useEffect(() => {
     if (remaining <= 0) {

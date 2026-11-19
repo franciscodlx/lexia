@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { View, Text, Pressable, ScrollView, ActivityIndicator } from 'react-native'
 import { router } from 'expo-router'
-import { Button } from '@/components/ui/Button'
 import { usePremium } from '@/hooks/usePremium'
 import { useUserStore } from '@/store/userStore'
 import { COPY } from '@/constants/copy'
@@ -77,7 +76,7 @@ export default function Paywall() {
               <Pressable
                 key={pkg.identifier}
                 onPress={() => purchase(pkg)}
-                style={({ pressed }) => ({
+                style={{
                   backgroundColor:
                     pkg.packageType === 'LIFETIME' ? Colors.premium : Colors.surface,
                   borderWidth: 2,
@@ -86,8 +85,8 @@ export default function Paywall() {
                   borderRadius: 16,
                   padding: 18,
                   alignItems: 'center',
-                  opacity: pressed ? 0.8 : 1,
-                })}
+                  opacity: 1,
+                }}
               >
                 <Text
                   className="text-lg font-bold"

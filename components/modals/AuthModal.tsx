@@ -7,7 +7,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator,
 } from 'react-native'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'

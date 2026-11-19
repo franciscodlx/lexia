@@ -1,4 +1,5 @@
-import { View, Text, Pressable, SafeAreaView } from 'react-native'
+import { View, Text, Pressable } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { GameBoard } from './GameBoard'
 import { GameKeyboard } from './GameKeyboard'
 import { GameToast } from './GameToast'
@@ -20,6 +21,8 @@ interface Props {
   flipValues: ReturnType<typeof import('@/hooks/useWordleGame').useWordleGame>['flipValues']
   handleKey: (key: string) => void
   onUseHint: () => void
+  // When set, the hint button offers a rewarded ad once hints run out
+  onWatchAd?: () => void
   // Game config
   title?: string
   subtitle?: string
@@ -42,6 +45,7 @@ export function WordleGame({
   flipValues,
   handleKey,
   onUseHint,
+  onWatchAd,
   title,
   subtitle,
   streak = 0,
@@ -54,7 +58,7 @@ export function WordleGame({
   const isPlaying = gameStatus === 'playing'
 
   return (
-    <SafeAreaView className="flex-1 bg-game-bg">
+    <SafeAreaView className="flex-1 bg-game-bg" style={{ flex: 1, backgroundColor: Colors.background }}>
       {/* ── Header ─────────────────────────────────────────── */}
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-game-border">
         {/* Language toggle or spacer */}
@@ -95,20 +99,21 @@ export function WordleGame({
           ) : null}
         </View>
 
-        {/* Hints button */}
+        {/* Hints button — with no hints left it offers a rewarded ad */}
         <Pressable
-          onPress={onUseHint}
-          disabled={hints <= 0 || !isPlaying}
+          onPress={hints > 0 ? onUseHint : onWatchAd}
+          disabled={!isPlaying || (hints <= 0 && !onWatchAd)}
           className="w-16 items-end"
         >
           <View
             className="px-2 py-1 rounded-lg flex-row items-center gap-1"
             style={{
-              backgroundColor: hints > 0 && isPlaying ? Colors.present : Colors.surface,
-              opacity: hints > 0 && isPlaying ? 1 : 0.4,
+              backgroundColor:
+                isPlaying && (hints > 0 || onWatchAd) ? Colors.present : Colors.surface,
+              opacity: isPlaying && (hints > 0 || onWatchAd) ? 1 : 0.4,
             }}
           >
-            <Text className="text-base">💡</Text>
+            <Text className="text-base">{hints > 0 || !onWatchAd ? '💡' : '📺'}</Text>
             <Text className="text-white text-xs font-bold">{hints}</Text>
           </View>
         </Pressable>
