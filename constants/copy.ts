@@ -30,9 +30,6 @@ interface Copy {
     email: string
     password: string
     username: string
-    continueWithApple: string
-    continueWithGoogle: string
-    orContinueWith: string
     suggestionTitle: string
     suggestionBody: string
     requiredTitle: string
@@ -146,9 +143,6 @@ export const COPY: Record<Language, Copy> = {
       email: 'Correo electrónico',
       password: 'Contraseña',
       username: 'Nombre de usuario',
-      continueWithApple: 'Continuar con Apple',
-      continueWithGoogle: 'Continuar con Google',
-      orContinueWith: 'O continuar con',
       suggestionTitle: '¡Guarda tu progreso!',
       suggestionBody: 'Crea una cuenta para no perder tu racha y estadísticas.',
       requiredTitle: 'Crea tu cuenta',
@@ -260,9 +254,6 @@ export const COPY: Record<Language, Copy> = {
       email: 'Email',
       password: 'Password',
       username: 'Username',
-      continueWithApple: 'Continue with Apple',
-      continueWithGoogle: 'Continue with Google',
-      orContinueWith: 'Or continue with',
       suggestionTitle: 'Save your progress!',
       suggestionBody: "Create an account so you don't lose your streak and stats.",
       requiredTitle: 'Create your account',

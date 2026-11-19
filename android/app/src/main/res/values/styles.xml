@@ -1,0 +1,11 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/lexia_background</item>
+        <item name="android:statusBarColor">@color/lexia_background</item>
+        <item name="android:navigationBarColor">@color/lexia_surface</item>
+        <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
+    </style>
+
+</resources>

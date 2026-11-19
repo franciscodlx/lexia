@@ -1,22 +1,12 @@
 {
-  "extends": "expo/tsconfig.base",
+  "extends": "@react-native/typescript-config",
   "compilerOptions": {
     "strict": true,
     "jsxImportSource": "nativewind",
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"]
     }
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    ".expo/types/**/*.d.ts",
-    "nativewind-env.d.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "supabase/functions"
-  ]
+  "include": ["**/*.ts", "**/*.tsx", "nativewind-env.d.ts", "env.d.ts"],
+  "exclude": ["node_modules", "ios/Pods", "supabase/functions"]
 }

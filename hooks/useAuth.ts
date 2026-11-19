@@ -1,5 +1,4 @@
 import { useEffect, useCallback } from 'react'
-import { Platform } from 'react-native'
 import Purchases from 'react-native-purchases'
 import { supabase } from '@/lib/supabase'
 import { initRevenueCat } from '@/lib/revenuecat'
@@ -8,27 +7,6 @@ import { useUserStore } from '@/store/userStore'
 import { useGameStore } from '@/store/gameStore'
 import type { GameResult, Language, RegistrationPromptReason, UserProfile } from '@/types'
 import { GAMES_BEFORE_REQUIRED, GAMES_BEFORE_SUGGESTION } from '@/constants/config'
-
-const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? ''
-const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? ''
-
-/** Google Sign-In needs real OAuth client IDs (and Play Services on Android). */
-export function isGoogleConfigured(): boolean {
-  const ok = (v: string) => v.length > 0 && !v.includes('XXXX')
-  return ok(GOOGLE_WEB_CLIENT_ID) && (Platform.OS !== 'ios' || ok(GOOGLE_IOS_CLIENT_ID))
-}
-
-export async function isGoogleSignInAvailable(): Promise<boolean> {
-  if (!isGoogleConfigured()) return false
-  if (Platform.OS === 'ios') return true
-  try {
-    const { GoogleSignin } = await import('@react-native-google-signin/google-signin')
-    // Throws on devices without Google Mobile Services (e.g. Huawei)
-    return await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: false })
-  } catch {
-    return false
-  }
-}
 
 // ─── Load user data from Supabase into the store ─────────────────────────────
 export async function loadUserData(userId: string): Promise<void> {
@@ -151,62 +129,6 @@ export function useAuth() {
     if (error) throw error
   }, [])
 
-  // ─── Apple Sign-In (iOS only) ────────────────────────────────────────────
-  const signInWithApple = useCallback(async () => {
-    if (Platform.OS !== 'ios') throw new Error('Apple Sign-In is iOS only')
-
-    const AppleAuthentication = await import('expo-apple-authentication')
-    const Crypto = await import('expo-crypto')
-
-    // Apple receives SHA-256(nonce); Supabase receives the raw nonce and compares.
-    const rawNonce = Array.from(Crypto.getRandomBytes(16))
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('')
-    const hashedNonce = await Crypto.digestStringAsync(
-      Crypto.CryptoDigestAlgorithm.SHA256,
-      rawNonce
-    )
-
-    const credential = await AppleAuthentication.signInAsync({
-      requestedScopes: [
-        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-        AppleAuthentication.AppleAuthenticationScope.EMAIL,
-      ],
-      nonce: hashedNonce,
-    })
-    if (!credential.identityToken) throw new Error('Apple did not return an identity token')
-
-    const { error } = await supabase.auth.signInWithIdToken({
-      provider: 'apple',
-      token: credential.identityToken,
-      nonce: rawNonce,
-    })
-    if (error) throw error
-  }, [])
-
-  // ─── Google Sign-In ──────────────────────────────────────────────────────
-  const signInWithGoogle = useCallback(async () => {
-    const { GoogleSignin } = await import('@react-native-google-signin/google-signin')
-
-    GoogleSignin.configure({
-      webClientId: GOOGLE_WEB_CLIENT_ID,
-      iosClientId: GOOGLE_IOS_CLIENT_ID || undefined,
-    })
-
-    const hasServices = await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: false })
-      .then(() => true)
-      .catch(() => false)
-    if (!hasServices) throw new Error('Google Play Services not available')
-
-    const response = await GoogleSignin.signIn()
-    if (response.type !== 'success') return // user cancelled
-    const idToken = response.data.idToken ?? (await GoogleSignin.getTokens()).idToken
-    if (!idToken) throw new Error('Google did not return an ID token')
-
-    const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token: idToken })
-    if (error) throw error
-  }, [])
-
   // ─── Profile update ──────────────────────────────────────────────────────
   const updateProfile = useCallback(
     async (updates: Partial<Pick<UserProfile, 'username' | 'avatarUrl' | 'language'>>) => {
@@ -289,8 +211,6 @@ export function useAuth() {
     registrationPrompt,
     signUpWithEmail,
     signInWithEmail,
-    signInWithApple,
-    signInWithGoogle,
     updateProfile,
     saveGame,
     signOut,

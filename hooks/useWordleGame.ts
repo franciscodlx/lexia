@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { makeMutable, withSequence, withTiming, withDelay } from 'react-native-reanimated'
 import type { SharedValue } from 'react-native-reanimated'
-import * as Haptics from 'expo-haptics'
+import { haptic } from '@/lib/haptics'
 import type { GameStatus, Language, LetterCell, LetterStatus } from '@/types'
 import { WORD_LENGTH, MAX_ROWS } from '@/constants/config'
 import { COPY } from '@/constants/copy'
@@ -132,7 +132,7 @@ export function useWordleGame() {
       if (key === 'ENTER') {
         if (currentCol < WORD_LENGTH) {
           shakeRow(currentRow)
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
+          haptic('warning')
           showMessage(COPY[language].game.notEnoughLetters)
           return
         }
@@ -142,7 +142,7 @@ export function useWordleGame() {
         // The target is always accepted (AI words may be missing from the dictionary)
         if (guess !== targetRef.current && !isValidWord(guess, language)) {
           shakeRow(currentRow)
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
+          haptic('warning')
           showMessage(COPY[language].game.wordNotFound)
           return
         }
@@ -186,14 +186,14 @@ export function useWordleGame() {
 
           if (won) {
             setGameStatus('won')
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+            haptic('success')
           } else if (nextRow >= MAX_ROWS) {
             setGameStatus('lost')
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+            haptic('error')
           } else {
             setCurrentRow(nextRow)
             setCurrentCol(0)
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+            haptic('light')
           }
         })
 
@@ -211,7 +211,7 @@ export function useWordleGame() {
         return next
       })
       setCurrentCol((c) => c + 1)
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+      haptic('light')
     },
     [board, currentCol, currentRow, flipRow, gameStatus, language, shakeRow, showMessage]
   )
@@ -240,7 +240,7 @@ export function useWordleGame() {
     // Advance col if we placed past current position
     setCurrentCol((c) => Math.max(c, hintCol + 1))
     setHints((h) => h - 1)
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+    haptic('medium')
   }, [board, currentRow, gameStatus, hints])
 
   // ─── addHint ─────────────────────────────────────────────────────────────
@@ -257,7 +257,7 @@ export function useWordleGame() {
       prev.map((r, i) => (i < completedRows ? r : r.map(() => ({ letter: '', status: 'empty' as LetterStatus }))))
     )
     setGameStatus('lost')
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+    haptic('error')
   }, [completedRows, gameStatus])
 
   // ─── resetGame ───────────────────────────────────────────────────────────

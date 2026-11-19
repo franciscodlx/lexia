@@ -2,6 +2,14 @@
 
 > Plan maestro para Claude Code. Lee este archivo completo antes de escribir una sola línea de código.
 
+> **⚠️ Estado actual (nov 2026) — prevalece sobre el plan original de abajo:**
+> - **Sin Expo.** La app es React Native CLI 0.81 (New Architecture). `ios/` y `android/` están versionados; no hay `expo prebuild`, `app.json` solo tiene `name`/`displayName` y los App IDs de AdMob.
+> - Navegación: React Navigation 7 (`navigation/`, pantallas en `screens/`). Entrada: `index.js` → `App.tsx`.
+> - Reemplazos: expo-haptics → `react-native-haptic-feedback` (`lib/haptics.ts`), expo-notifications → `@notifee/react-native` (solo notificación local), expo-image-picker → `react-native-image-picker`, `EXPO_PUBLIC_*` → `react-native-dotenv` (`lib/env.ts`).
+> - **Auth solo email + contraseña.** Apple Sign-In y Google Sign-In retirados (código, dependencias y providers de Supabase).
+> - iOS: equipo **Helm de Mexico SA (Z2G8RSF85P)**, sin capacidades de Push remoto ni Sign In with Apple. El Podfile usa el core de RN precompilado (necesario con Xcode 27).
+> - Fases 1, 8 y 9 de abajo describen el setup Expo original: úsalas solo como referencia de producto.
+
 ---
 
 ## 0. Cómo usar este plan en Claude Code

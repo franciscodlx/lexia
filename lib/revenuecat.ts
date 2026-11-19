@@ -1,10 +1,11 @@
 import { Platform } from 'react-native'
 import Purchases from 'react-native-purchases'
+import { ENV } from '@/lib/env'
 
 const RC_KEY =
   Platform.OS === 'ios'
-    ? (process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY ?? '')
-    : (process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY ?? '')
+    ? ENV.revenueCatIosKey
+    : ENV.revenueCatAndroidKey
 
 /** Entitlement ID configured in RevenueCat → Entitlements. */
 export const PREMIUM_ENTITLEMENT = 'premium'

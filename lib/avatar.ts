@@ -1,21 +1,24 @@
-import * as ImagePicker from 'expo-image-picker'
+import { launchImageLibrary } from 'react-native-image-picker'
 import { supabase } from '@/lib/supabase'
 
 /**
- * Lets the user pick a square photo and uploads it to `avatars/<uid>/avatar-<ts>.jpg`.
- * Returns the public URL, or null if the user cancelled.
+ * Lets the user pick a photo (downscaled to 512px) and uploads it to
+ * `avatars/<uid>/avatar-<ts>.jpg`. Returns the public URL, or null if cancelled.
  */
 export async function pickAndUploadAvatar(userId: string): Promise<string | null> {
-  const picked = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ['images'],
-    allowsEditing: true,
-    aspect: [1, 1],
+  const picked = await launchImageLibrary({
+    mediaType: 'photo',
+    selectionLimit: 1,
+    maxWidth: 512,
+    maxHeight: 512,
     quality: 0.6,
   })
-  if (picked.canceled || !picked.assets[0]) return null
+  if (picked.didCancel) return null
+  if (picked.errorCode) throw new Error(picked.errorMessage ?? picked.errorCode)
+  const asset = picked.assets?.[0]
+  if (!asset?.uri) return null
 
-  const asset = picked.assets[0]
-  const contentType = asset.mimeType ?? 'image/jpeg'
+  const contentType = asset.type ?? 'image/jpeg'
   const ext = contentType === 'image/png' ? 'png' : contentType === 'image/webp' ? 'webp' : 'jpg'
   const body = await (await fetch(asset.uri)).arrayBuffer()
   // New file name each time so CDN/image caches never show the old photo

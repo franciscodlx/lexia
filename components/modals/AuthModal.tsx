@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   Modal,
   View,
@@ -10,7 +10,7 @@ import {
 } from 'react-native'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
-import { useAuth, isGoogleSignInAvailable } from '@/hooks/useAuth'
+import { useAuth } from '@/hooks/useAuth'
 import type { Language, RegistrationPromptReason } from '@/types'
 import { COPY } from '@/constants/copy'
 import { Colors } from '@/constants/colors'
@@ -26,7 +26,7 @@ type AuthMode = 'signin' | 'signup'
 
 export function AuthModal({ visible, reason, language, onDismiss }: Props) {
   const copy = COPY[language]
-  const { signInWithEmail, signUpWithEmail, signInWithApple, signInWithGoogle } = useAuth()
+  const { signInWithEmail, signUpWithEmail } = useAuth()
 
   const [mode, setMode] = useState<AuthMode>('signin')
   const [email, setEmail] = useState('')
@@ -34,22 +34,6 @@ export function AuthModal({ visible, reason, language, onDismiss }: Props) {
   const [username, setUsername] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // Hidden until confirmed: needs OAuth IDs, and Play Services on Android (not on Huawei)
-  const [googleAvailable, setGoogleAvailable] = useState(false)
-
-  useEffect(() => {
-    if (!visible) return
-    let active = true
-    isGoogleSignInAvailable()
-      .then((ok) => {
-        if (active) setGoogleAvailable(ok)
-      })
-      .catch(() => {})
-    return () => {
-      active = false
-    }
-  }, [visible])
-
   const isDismissable = reason === 'suggestion'
 
   const handleDismiss = () => {
@@ -68,35 +52,6 @@ export function AuthModal({ visible, reason, language, onDismiss }: Props) {
       onDismiss?.()
     } catch (e) {
       setError(e instanceof Error ? e.message : copy.common.error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleApple = async () => {
-    setError(null)
-    setLoading(true)
-    try {
-      await signInWithApple()
-      onDismiss?.()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : copy.common.error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleGoogle = async () => {
-    setError(null)
-    setLoading(true)
-    try {
-      await signInWithGoogle()
-      onDismiss?.()
-    } catch (e) {
-      // Silent if Play Services unavailable (Huawei)
-      if (!(e instanceof Error && e.message.includes('not available'))) {
-        setError(e instanceof Error ? e.message : copy.common.error)
-      }
     } finally {
       setLoading(false)
     }
@@ -154,47 +109,6 @@ export function AuthModal({ visible, reason, language, onDismiss }: Props) {
 
               <ScrollView showsVerticalScrollIndicator={false}>
                 <View className="gap-4">
-                  {/* Social buttons */}
-                  {Platform.OS === 'ios' && (
-                    <Pressable
-                      onPress={handleApple}
-                      disabled={loading}
-                      className="flex-row items-center justify-center gap-3 py-3 rounded-xl"
-                      style={{ backgroundColor: '#000', opacity: loading ? 0.6 : 1 }}
-                    >
-                      <Text className="text-white font-bold text-base">
-                        {copy.auth.continueWithApple}
-                      </Text>
-                    </Pressable>
-                  )}
-
-                  {googleAvailable && (
-                  <Pressable
-                    onPress={handleGoogle}
-                    disabled={loading}
-                    className="flex-row items-center justify-center gap-3 py-3 rounded-xl"
-                    style={{
-                      backgroundColor: Colors.background,
-                      borderWidth: 1,
-                      borderColor: Colors.border,
-                      opacity: loading ? 0.6 : 1,
-                    }}
-                  >
-                    <Text className="text-white font-bold text-base">
-                      {copy.auth.continueWithGoogle}
-                    </Text>
-                  </Pressable>
-                  )}
-
-                  {/* Divider */}
-                  <View className="flex-row items-center gap-3">
-                    <View className="flex-1 h-px" style={{ backgroundColor: Colors.border }} />
-                    <Text className="text-xs" style={{ color: Colors.textMuted }}>
-                      {copy.auth.orContinueWith}
-                    </Text>
-                    <View className="flex-1 h-px" style={{ backgroundColor: Colors.border }} />
-                  </View>
-
                   {/* Email form */}
                   {mode === 'signup' && (
                     <Input

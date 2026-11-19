@@ -18,23 +18,22 @@ jest.mock('react-native-reanimated', () => {
   return { ...mock, makeMutable }
 })
 
-jest.mock('expo-haptics', () => ({
-  impactAsync: jest.fn().mockResolvedValue(undefined),
-  notificationAsync: jest.fn().mockResolvedValue(undefined),
-  selectionAsync: jest.fn().mockResolvedValue(undefined),
-  ImpactFeedbackStyle: { Light: 'light', Medium: 'medium', Heavy: 'heavy' },
-  NotificationFeedbackType: { Success: 'success', Warning: 'warning', Error: 'error' },
+jest.mock('react-native-haptic-feedback', () => ({
+  trigger: jest.fn(),
 }))
 
-jest.mock('expo-notifications', () => ({
-  setNotificationHandler: jest.fn(),
-  requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
-  getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
-  scheduleNotificationAsync: jest.fn().mockResolvedValue('notification-id'),
-  cancelAllScheduledNotificationsAsync: jest.fn().mockResolvedValue(undefined),
-  getExpoPushTokenAsync: jest.fn().mockResolvedValue({ data: 'ExponentPushToken[test]' }),
-  AndroidImportance: { HIGH: 4 },
-  SchedulableTriggerInputTypes: { DAILY: 'daily' },
+jest.mock('@notifee/react-native', () => ({
+  __esModule: true,
+  default: {
+    requestPermission: jest.fn().mockResolvedValue({ authorizationStatus: 1 }),
+    createChannel: jest.fn().mockResolvedValue('daily-reminder'),
+    createTriggerNotification: jest.fn().mockResolvedValue('id'),
+    cancelTriggerNotification: jest.fn().mockResolvedValue(undefined),
+  },
+  AuthorizationStatus: { NOT_DETERMINED: -1, DENIED: 0, AUTHORIZED: 1, PROVISIONAL: 2 },
+  AndroidImportance: { DEFAULT: 3 },
+  RepeatFrequency: { DAILY: 1 },
+  TriggerType: { TIMESTAMP: 0 },
 }))
 
 jest.mock('react-native-purchases', () => ({

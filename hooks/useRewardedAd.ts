@@ -5,13 +5,14 @@ import {
   RewardedAdEventType,
   TestIds,
 } from 'react-native-google-mobile-ads'
+import { ENV } from '@/lib/env'
 
 const REWARDED_AD_UNIT_ID =
   __DEV__
     ? TestIds.REWARDED
     : Platform.OS === 'ios'
-    ? (process.env.EXPO_PUBLIC_ADMOB_REWARDED_IOS ?? TestIds.REWARDED)
-    : (process.env.EXPO_PUBLIC_ADMOB_REWARDED_ANDROID ?? TestIds.REWARDED)
+    ? (ENV.admobRewardedIos || TestIds.REWARDED)
+    : (ENV.admobRewardedAndroid || TestIds.REWARDED)
 
 export function useRewardedAd() {
   const [isLoaded, setIsLoaded] = useState(false)
